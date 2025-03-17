@@ -43,10 +43,25 @@ function PageMonitor() {
   const checkForUpdates = async (url) => {
     const newContent = await fetchPageContent(url);
     if (newContent && previousContent.current[url] && previousContent.current[url] !== newContent) {
-      setAlerts([...alerts, { message: `Update detected on ${url}`, old: previousContent.current[url], new: newContent }]);
+      const oldContent = previousContent.current[url];
+      
+      let diffIndex = 0;
+      while (diffIndex < oldContent.length && diffIndex < newContent.length && oldContent[diffIndex] === newContent[diffIndex]) {
+        diffIndex++;
+      }
+      
+      const oldDiff = oldContent.slice(diffIndex, diffIndex + 100);
+      const newDiff = newContent.slice(diffIndex, diffIndex + 100);
+  
+      setAlerts([...alerts, { 
+        message: `Update detected on ${url}`,
+        old: `Old: ${oldDiff}...`,
+        new: `New: ${newDiff}...`
+      }]);
     }
     previousContent.current[url] = newContent;
   };
+  
 
   const startMonitoringUrl = (urlToMonitor) => {
     setMonitoredUrls(monitoredUrls.map((item) => item.url === urlToMonitor ? { ...item, isMonitoring: true } : item));
@@ -100,9 +115,18 @@ function PageMonitor() {
         </Card>
       </motion.div>
 
-      <Snackbar open={alerts.length > 0} autoHideDuration={6000} onClose={() => setAlerts([])}>
-        <Alert severity="warning">{alerts.length > 0 && alerts[alerts.length - 1].message}</Alert>
-      </Snackbar>
+      <Snackbar open={alerts.length > 0} autoHideDuration={10000} onClose={() => setAlerts([])}>
+  <Alert severity="warning">
+    {alerts.length > 0 && (
+      <>
+        <Typography variant="body1">{alerts[alerts.length - 1].message}</Typography>
+        <Typography variant="body2" sx={{ color: 'red' }}>{alerts[alerts.length - 1].old}</Typography>
+        <Typography variant="body2" sx={{ color: 'green' }}>{alerts[alerts.length - 1].new}</Typography>
+      </>
+    )}
+  </Alert>
+</Snackbar>
+
     </Container>
   );
 }
