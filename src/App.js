@@ -32,33 +32,52 @@ function PageMonitor() {
     try {
       const response = await fetch(url);
       const text = await response.text();
-      console.log("sjsjsjs",text);
-      return text;
+  
+      // Extract meaningful text (ignore scripts, styles, and metadata)
+      const parser = new DOMParser();
+      const doc = parser.parseFromString(text, "text/html");
+      
+      // Get only visible text content
+      const visibleText = doc.body.innerText.replace(/\s+/g, ' ').trim();
+  
+      return visibleText;
     } catch (error) {
-      console.error('Error fetching URL:', error);
+      console.error("Error fetching URL:", error);
       return null;
     }
   };
-
+  
+  const getDiff = (oldText, newText) => {
+    const oldWords = oldText.split(" ");
+    const newWords = newText.split(" ");
+    let diffStart = 0;
+  
+    while (diffStart < oldWords.length && diffStart < newWords.length && oldWords[diffStart] === newWords[diffStart]) {
+      diffStart++;
+    }
+  
+    const oldDiff = oldWords.slice(diffStart, diffStart + 20).join(" ");
+    const newDiff = newWords.slice(diffStart, diffStart + 20).join(" ");
+  
+    return { oldDiff, newDiff };
+  };
+  
   const checkForUpdates = async (url) => {
     const newContent = await fetchPageContent(url);
-    if (newContent && previousContent.current[url] && previousContent.current[url] !== newContent) {
-      const oldContent = previousContent.current[url];
-      
-      let diffIndex = 0;
-      while (diffIndex < oldContent.length && diffIndex < newContent.length && oldContent[diffIndex] === newContent[diffIndex]) {
-        diffIndex++;
-      }
-      
-      const oldDiff = oldContent.slice(diffIndex, diffIndex + 100);
-      const newDiff = newContent.slice(diffIndex, diffIndex + 100);
   
-      setAlerts([...alerts, { 
-        message: `Update detected on ${url}`,
-        old: `Old: ${oldDiff}...`,
-        new: `New: ${newDiff}...`
-      }]);
+    if (newContent && previousContent.current[url] && previousContent.current[url] !== newContent) {
+      const { oldDiff, newDiff } = getDiff(previousContent.current[url], newContent);
+  
+      setAlerts([
+        ...alerts,
+        {
+          message: `Update detected on ${url}`,
+          old: `Old: ${oldDiff}...`,
+          new: `New: ${newDiff}...`,
+        },
+      ]);
     }
+  
     previousContent.current[url] = newContent;
   };
   
