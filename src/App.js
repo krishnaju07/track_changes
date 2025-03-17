@@ -32,6 +32,7 @@ function PageMonitor() {
     try {
       const response = await fetch(url);
       const text = await response.text();
+      console.log("sjsjsjs",text);
       return text;
     } catch (error) {
       console.error('Error fetching URL:', error);
@@ -39,31 +40,10 @@ function PageMonitor() {
     }
   };
 
-  const sendTelegramAlert = (message) => {
-    const botToken = 'YOUR_TELEGRAM_BOT_TOKEN';
-    const chatId = 'YOUR_CHAT_ID';
-    fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ chat_id: chatId, text: message })
-    });
-  };
-
-  const diffText = (oldText, newText) => {
-    return `Old: ${oldText.substring(0, 100)}...\nNew: ${newText.substring(0, 100)}...`;
-  };
-
   const checkForUpdates = async (url) => {
     const newContent = await fetchPageContent(url);
     if (newContent && previousContent.current[url] && previousContent.current[url] !== newContent) {
-      const difference = diffText(previousContent.current[url], newContent);
-      const alertMessage = `Update detected on ${url}\n${difference}`;
-      setAlerts([...alerts, { message: alertMessage, old: previousContent.current[url], new: newContent }]);
-      if (alertType === 'notification') {
-        new Notification('Page Update', { body: alertMessage });
-      } else if (alertType === 'telegram') {
-        sendTelegramAlert(alertMessage);
-      }
+      setAlerts([...alerts, { message: `Update detected on ${url}`, old: previousContent.current[url], new: newContent }]);
     }
     previousContent.current[url] = newContent;
   };
@@ -94,9 +74,29 @@ function PageMonitor() {
             <MenuItem value="notification">Browser Notification</MenuItem>
             <MenuItem value="in-app">In-App Message</MenuItem>
             <MenuItem value="sound">Sound</MenuItem>
-            <MenuItem value="telegram">Telegram Bot</MenuItem>
           </Select>
           <Button variant="contained" onClick={addUrlToMonitor} sx={{ width: '100%', mt: 3, background: 'linear-gradient(90deg, #ff4081, #ff79b0)', color: '#fff', fontSize: '1.2rem', p: 1.5, borderRadius: 3 }}>Add URL</Button>
+        </Card>
+      </motion.div>
+      
+      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
+        <Card variant="outlined" sx={{ p: 4, background: 'rgba(255,255,255,0.1)', borderRadius: 3, backdropFilter: 'blur(10px)', boxShadow: '0 10px 30px rgba(0,0,0,0.2)' }}>
+          <Typography variant="h6" sx={{ fontWeight: 'bold', letterSpacing: 1 }}>Currently Monitoring</Typography>
+          <List>
+            {monitoredUrls.map((item) => (
+              <ListItem key={item.url} component={motion.div} whileHover={{ scale: 1.05 }} sx={{ mb: 2, background: 'rgba(255,255,255,0.2)', borderRadius: 2 }}>
+                <ListItemText primary={item.url} secondary={item.isMonitoring ? 'Monitoring' : 'Paused'} />
+                <ListItemSecondaryAction>
+                  {item.isMonitoring ? (
+                    <IconButton color="secondary" onClick={() => stopMonitoringUrl(item.url)}><Stop /></IconButton>
+                  ) : (
+                    <IconButton color="primary" onClick={() => startMonitoringUrl(item.url)}><PlayArrow /></IconButton>
+                  )}
+                  <IconButton color="error" onClick={() => setMonitoredUrls(monitoredUrls.filter((i) => i.url !== item.url))}><Delete /></IconButton>
+                </ListItemSecondaryAction>
+              </ListItem>
+            ))}
+          </List>
         </Card>
       </motion.div>
 
